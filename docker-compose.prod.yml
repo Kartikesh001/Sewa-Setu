@@ -1,0 +1,221 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    # Low-memory tuning for 1-core / 1.6 GB RAM VPS
+    command: postgres -c shared_buffers=64MB -c work_mem=4MB -c maintenance_work_mem=16MB -c max_connections=25
+    environment:
+      POSTGRES_DB: ${DB_NAME:-sewasetu}
+      POSTGRES_USER: ${DB_USER:-sewasetu}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password must be set in .env}
+    # Security requirement: PostgreSQL is NOT exposed to the host/public internet.
+    expose:
+      - "5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # NOTE: No auto-migration or seed mounts in /docker-entrypoint-initdb.d/!
+      # Database schema initialization must be executed via an explicit reviewed command.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sewasetu} -d ${DB_NAME:-sewasetu}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "2"
+    networks:
+      - sewasetu-internal
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sewasetu-app:latest
+    restart: unless-stopped
+    # 2 workers + 2 threads optimized for 1 CPU core & 1.6 GB RAM
+    command: ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "2", "--timeout", "60", "app:app"]
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-sewasetu}
+      DB_USER: ${DB_USER:-sewasetu}
+      DB_PASSWORD: ${DB_PASSWORD:?Database password must be set in .env}
+      SECRET_KEY: ${SECRET_KEY:?Flask SECRET_KEY must be set in .env}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Admin password must be set in .env}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost}
+      SMS_GATEWAY_URL: http://smsgw:8025
+      UPLOAD_DIR: /var/sewasetu/uploads
+      TZ: Asia/Kolkata
+    depends_on:
+      db:
+        condition: service_healthy
+      smsgw:
+        condition: service_started
+    expose:
+      - "8000"
+    volumes:
+      - uploads:/var/sewasetu/uploads
+      - applogs:/var/log/sewasetu
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "2"
+    networks:
+      - sewasetu-internal
+
+  citizen_mcp:
+    image: sewasetu-app:latest
+    command: ["python", "-m", "citizen_mcp.server"]
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-sewasetu}
+      DB_USER: ${DB_USER:-sewasetu}
+      DB_PASSWORD: ${DB_PASSWORD:?Database password must be set in .env}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost}
+      CITIZEN_MCP_HOST: 0.0.0.0
+      CITIZEN_MCP_PORT: 8001
+      CITIZEN_MCP_AUDIENCE: ${PUBLIC_BASE_URL:-http://localhost}/mcp
+      SMS_GATEWAY_URL: http://smsgw:8025
+      TZ: Asia/Kolkata
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "2"
+    networks:
+      - sewasetu-internal
+
+  officer_mcp:
+    image: sewasetu-app:latest
+    command: ["python", "-m", "officer_mcp.server"]
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-sewasetu}
+      DB_USER: ${DB_USER:-sewasetu}
+      DB_PASSWORD: ${DB_PASSWORD:?Database password must be set in .env}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost}
+      OFFICER_MCP_HOST: 0.0.0.0
+      OFFICER_MCP_PORT: 8002
+      OFFICER_MCP_AUDIENCE: ${PUBLIC_BASE_URL:-http://localhost}/mcp/officer
+      SMS_GATEWAY_URL: http://smsgw:8025
+      TZ: Asia/Kolkata
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8002"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "2"
+    networks:
+      - sewasetu-internal
+
+  smsgw:
+    build:
+      context: ./smsgw
+      dockerfile: Dockerfile
+    image: sewasetu-smsgw:latest
+    restart: unless-stopped
+    # Mock SMS gateway strictly internal
+    expose:
+      - "8025"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+    networks:
+      - sewasetu-internal
+
+  proxy:
+    image: nginx:1.25-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot_etc:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+    depends_on:
+      - app
+      - citizen_mcp
+      - officer_mcp
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "2"
+    networks:
+      - sewasetu-internal
+
+  # Scheduler service placed in an inactive profile ('manual-scheduler')
+  # Does NOT run during standard 'docker compose up', saving RAM and guaranteeing safety.
+  scheduler:
+    image: sewasetu-app:latest
+    profiles:
+      - manual-scheduler
+    command: ["sh", "-c", "echo 'Deemed-approval reconciliation DISABLED for initial demo safety.'; exec tail -f /dev/null"]
+    restart: "no"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-sewasetu}
+      DB_USER: ${DB_USER:-sewasetu}
+      DB_PASSWORD: ${DB_PASSWORD:?Database password must be set in .env}
+      SMS_GATEWAY_URL: http://smsgw:8025
+      TZ: Asia/Kolkata
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - applogs:/var/log/sewasetu
+    networks:
+      - sewasetu-internal
+
+volumes:
+  pgdata:
+  uploads:
+  applogs:
+  certbot_etc:
+  certbot_www:
+
+networks:
+  sewasetu-internal:
+    driver: bridge

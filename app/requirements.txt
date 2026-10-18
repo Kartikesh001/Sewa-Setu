@@ -1,0 +1,12 @@
+Flask
+psycopg2-binary
+requests
+fpdf2
+gunicorn
+PyJWT[crypto]
+cryptography
+mcp>=2.0.0
+uvicorn>=0.20.0
+starlette
+pydantic
+

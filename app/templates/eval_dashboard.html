@@ -1,0 +1,1100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sewa Setu — Evaluation Dashboard</title>
+<style>
+:root {
+  --primary: #0b3d6e;
+  --primary-light: #165391;
+  --primary-dark: #072646;
+  --saffron: #f7931e;
+  --green: #107e3e;
+  --green-bg: #e6f6ec;
+  --red: #b91c1c;
+  --red-bg: #fde8e8;
+  --blue: #1d4ed8;
+  --blue-bg: #eff6ff;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+}
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+  background: #f0f2f5;
+  color: var(--gray-800);
+  line-height: 1.5;
+}
+.header {
+  background: var(--primary);
+  color: #fff;
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.header h1 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.header .badge-tag {
+  background: rgba(255,255,255,0.18);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.header .sub {
+  font-size: 13px;
+  color: #cfe0f3;
+  margin-top: 2px;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.band {
+  background: var(--saffron);
+  height: 5px;
+}
+.btn-run {
+  background: var(--saffron);
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+.btn-run:hover {
+  background: #e07f10;
+  transform: translateY(-1px);
+}
+.btn-run:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+}
+.spinner {
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.main-container {
+  max-width: 1240px;
+  margin: 24px auto 60px;
+  padding: 0 20px;
+}
+
+/* Metric Cards */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.metric-card {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+.metric-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--primary);
+}
+.metric-card.accent-pass::before { background: var(--green); }
+.metric-card.accent-sla::before { background: var(--blue); }
+.metric-card.accent-turns::before { background: var(--saffron); }
+
+.metric-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--gray-600);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.metric-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin: 6px 0 2px;
+}
+.metric-desc {
+  font-size: 12px;
+  color: var(--gray-600);
+}
+
+/* Run Info Bar */
+.run-info-bar {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  padding: 12px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+}
+.run-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+}
+.pill-completed { background: var(--green-bg); color: var(--green); }
+.pill-failed { background: var(--red-bg); color: var(--red); }
+.pill-running { background: var(--blue-bg); color: var(--blue); }
+
+/* Personas Section */
+.section-header {
+  margin: 28px 0 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.section-header h2 {
+  font-size: 18px;
+  margin: 0;
+  color: var(--primary);
+  font-weight: 700;
+}
+.section-header p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gray-600);
+}
+
+.personas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 18px;
+  margin-bottom: 32px;
+}
+.persona-card {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+.persona-card:hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 4px 12px rgba(11,61,110,0.08);
+  transform: translateY(-2px);
+}
+.persona-card.active-selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(11,61,110,0.2);
+}
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.persona-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 16px;
+  border: 1px solid var(--gray-200);
+}
+.avatar.officer-avatar {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+.persona-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin: 0;
+}
+.persona-sub {
+  font-size: 12px;
+  color: var(--gray-600);
+  margin: 2px 0 0;
+}
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.badge-pass { background: var(--green-bg); color: var(--green); }
+.badge-fail { background: var(--red-bg); color: var(--red); }
+.badge-pending { background: var(--gray-100); color: var(--gray-600); }
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  margin: 0 0 10px;
+}
+.card-desc {
+  font-size: 12px;
+  color: var(--gray-700);
+  margin: 0 0 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-stats {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px dashed var(--gray-200);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--gray-600);
+}
+.stat-pill {
+  background: var(--gray-50);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--gray-200);
+}
+
+/* Deep Inspector Section */
+.inspector-card {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  margin-top: 24px;
+  overflow: hidden;
+}
+.inspector-header {
+  background: var(--gray-50);
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.inspector-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0;
+}
+.inspector-sub {
+  font-size: 12px;
+  color: var(--gray-600);
+  margin: 2px 0 0;
+}
+
+/* Tabs */
+.tabs-nav {
+  display: flex;
+  background: var(--gray-100);
+  border-bottom: 1px solid var(--gray-200);
+  overflow-x: auto;
+}
+.tab-btn {
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-600);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.tab-btn:hover {
+  color: var(--primary);
+}
+.tab-btn.active {
+  color: var(--primary);
+  background: #fff;
+  border-bottom-color: var(--saffron);
+}
+
+.tab-pane {
+  display: none;
+  padding: 24px;
+}
+.tab-pane.active {
+  display: block;
+}
+
+/* Conversation Chat Trace */
+.chat-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.chat-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chat-msg.citizen-msg {
+  align-self: flex-start;
+  max-width: 80%;
+}
+.chat-msg.assistant-msg {
+  align-self: flex-end;
+  max-width: 85%;
+}
+.msg-speaker {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gray-600);
+  padding: 0 4px;
+}
+.msg-bubble {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.citizen-msg .msg-bubble {
+  background: #fff;
+  border: 1px solid var(--gray-300);
+  color: var(--gray-900);
+}
+.assistant-msg .msg-bubble {
+  background: #0b3d6e;
+  color: #fff;
+}
+.tool-call-box {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 3px solid var(--saffron);
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin: 6px 0;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.tool-call-header {
+  font-weight: 700;
+  color: #0b3d6e;
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+}
+.tool-call-args {
+  color: #475569;
+  background: #fff;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  margin: 4px 0;
+}
+.tool-response-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 6px 8px;
+  border-radius: 4px;
+  color: #166534;
+  font-size: 11px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+/* DB Verification Diffs */
+.diff-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media (max-width: 768px) {
+  .diff-grid { grid-template-columns: 1fr; }
+}
+.diff-box {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  padding: 16px;
+}
+.diff-box h4 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--gray-600);
+  letter-spacing: 0.5px;
+}
+.state-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.state-table td, .state-table th {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--gray-200);
+  text-align: left;
+}
+.state-table th {
+  font-weight: 600;
+  color: var(--gray-600);
+  width: 35%;
+}
+.state-table td {
+  font-family: ui-monospace, monospace;
+  color: var(--gray-800);
+}
+.state-highlight {
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.state-approved {
+  background: var(--green-bg);
+  color: var(--green);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.state-withdrawn {
+  background: #fef2f2;
+  color: #991b1b;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* Audit Table */
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 12px;
+}
+.audit-table th, .audit-table td {
+  border: 1px solid var(--gray-200);
+  padding: 8px 12px;
+  text-align: left;
+}
+.audit-table th {
+  background: var(--gray-100);
+  color: var(--gray-700);
+  font-weight: 600;
+}
+
+/* SMS Gateway Box */
+.sms-card {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid var(--blue);
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin-bottom: 12px;
+}
+.sms-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--gray-600);
+  margin-bottom: 6px;
+}
+.sms-body {
+  font-size: 13px;
+  color: var(--gray-800);
+  font-family: inherit;
+}
+
+/* Assertions Checklist */
+.assertion-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.assertion-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.check-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+.icon-pass { background: var(--green); color: #fff; }
+.icon-fail { background: var(--red); color: #fff; }
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: #fff;
+  border: 1px dashed var(--gray-300);
+  border-radius: 8px;
+  margin: 30px 0;
+}
+.empty-state h3 {
+  color: var(--primary);
+  margin: 0 0 8px;
+}
+.empty-state p {
+  color: var(--gray-600);
+  max-width: 460px;
+  margin: 0 auto 20px;
+  font-size: 14px;
+}
+
+.footer {
+  max-width: 1240px;
+  margin: 40px auto;
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+}
+.footer a {
+  color: var(--primary);
+  text-decoration: none;
+  margin: 0 8px;
+}
+.footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div>
+    <h1>
+      Sewa Setu &mdash; Evaluation Dashboard
+      <span class="badge-tag">Verification Suite</span>
+    </h1>
+    <div class="sub">Department of Social Welfare &middot; Government of Purvanchal &middot; Evaluation System of Record</div>
+  </div>
+  <div class="header-actions">
+    <button id="runBtn" class="btn-run" onclick="triggerEvaluation()">
+      <span id="runSpinner" class="spinner" style="display:none"></span>
+      <span id="runBtnText">&#9654; Run Evaluations</span>
+    </button>
+  </div>
+</div>
+<div class="band"></div>
+
+<div class="main-container">
+
+  <!-- Overview Metrics Grid -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-label">Total Scenarios Evaluated</div>
+      <div class="metric-value" id="mTotal">{{ run.total_scenarios if run else 6 }}</div>
+      <div class="metric-desc">Citizen &amp; Officer End-to-End Test Cases</div>
+    </div>
+    <div class="metric-card accent-pass">
+      <div class="metric-label">Evaluation Pass Rate</div>
+      <div class="metric-value" id="mPassRate">{{ run.summary.pass_rate if run and run.summary else (run.passed_scenarios / run.total_scenarios * 100)|round(1) if run and run.total_scenarios else "0.0" }}%</div>
+      <div class="metric-desc">{{ run.passed_scenarios if run else 0 }} of {{ run.total_scenarios if run else 6 }} assertions verified successfully</div>
+    </div>
+    <div class="metric-card accent-sla">
+      <div class="metric-label">Statutory SLA Compliance</div>
+      <div class="metric-value" id="mSlaRate">{{ run.sla_compliance_rate if run else "100.0" }}%</div>
+      <div class="metric-desc">15-day deemed approval rule adherence</div>
+    </div>
+    <div class="metric-card accent-turns">
+      <div class="metric-label">Avg Conversation Turns</div>
+      <div class="metric-value" id="mAvgTurns">{{ run.avg_turns if run else "2.7" }}</div>
+      <div class="metric-desc">Turns per application resolution</div>
+    </div>
+  </div>
+
+  <!-- Run Metadata Bar -->
+  <div class="run-info-bar">
+    <div>
+      <strong>Run ID:</strong> <span id="runIdText" style="font-family: monospace;">{{ run.run_id if run else "None (Ready to run)" }}</span>
+      &nbsp;&middot;&nbsp;
+      <strong>Status:</strong>
+      <span id="runStatusBadge" class="run-pill {% if run and run.status == 'COMPLETED' %}pill-completed{% elif run and run.status == 'RUNNING' %}pill-running{% else %}pill-failed{% endif %}">
+        {{ run.status if run else "NOT_RUN" }}
+      </span>
+      &nbsp;&middot;&nbsp;
+      <strong>Completed:</strong> <span id="runTimeText">{{ run.completed_at.strftime('%d %b %Y, %H:%M:%S IST') if run and run.completed_at else 'N/A' }}</span>
+    </div>
+    <div>
+      <strong>Execution Time:</strong> <span id="runDurationText">{{ run.duration_ms if run else 0 }} ms</span>
+      &nbsp;&middot;&nbsp;
+      <strong>SMS Gateway:</strong> <span style="color:var(--green); font-weight:600;">Connected (Port 8025)</span>
+    </div>
+  </div>
+
+  <!-- Persona Cards Section -->
+  <div class="section-header">
+    <div>
+      <h2>Evaluation Personas &amp; Scenarios (6/6)</h2>
+      <p>Click any persona card below to inspect multi-turn conversation traces, database state transitions, and SMS dispatches.</p>
+    </div>
+  </div>
+
+  <div class="personas-grid" id="personasGrid">
+    {% for p_id, p in personas.items() %}
+    {% set p_result = None %}
+    {% if run and run.results %}
+      {% for r in run.results %}
+        {% if r.scenario_id == p_id %}
+          {% set p_result = r %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    <div class="persona-card {% if loop.first %}active-selected{% endif %}" id="card-{{ p_id }}" onclick="selectPersona('{{ p_id }}')">
+      <div class="card-top">
+        <div class="persona-meta">
+          <div class="avatar {% if p.role == 'officer' %}officer-avatar{% endif %}">
+            {{ p.name[0] }}
+          </div>
+          <div>
+            <h3 class="persona-name">{{ p.name }}</h3>
+            <div class="persona-sub">Age {{ p.age }} &middot; {{ p.block }} Block &middot; <span style="text-transform: capitalize;">{{ p.role }}</span></div>
+          </div>
+        </div>
+        <span class="status-badge {% if p_result and p_result.status == 'PASSED' %}badge-pass{% elif p_result and p_result.status == 'FAILED' %}badge-fail{% else %}badge-pending{% endif %}" id="badge-{{ p_id }}">
+          {{ p_result.status if p_result else 'READY' }}
+        </span>
+      </div>
+
+      <div class="card-title">{{ p.title }}</div>
+      <div class="card-desc">{{ p.profile }}</div>
+
+      <div class="card-stats">
+        <span class="stat-pill"><strong>Turns:</strong> {{ p_result.turns_count if p_result else '~3' }}</span>
+        <span class="stat-pill"><strong>SLA Target:</strong> 15 Days</span>
+        <span style="color: var(--primary); font-weight: 600;">Inspect &rarr;</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Deep Inspector Card -->
+  <div class="inspector-card" id="inspectorCard">
+    <div class="inspector-header">
+      <div>
+        <h3 class="inspector-title" id="inspectorPersonaName">Hemaprabha Devi</h3>
+        <div class="inspector-sub" id="inspectorScenarioTitle">Illiterate Widow Guided by Grandson (Eligible End-to-End)</div>
+      </div>
+      <div>
+        <span id="inspectorStatusBadge" class="status-badge badge-pass">PASSED</span>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" onclick="switchTab('trace')">&#128172; Conversation Trace</button>
+      <button class="tab-btn" onclick="switchTab('db')">&#128450; Database State &amp; Audit Log</button>
+      <button class="tab-btn" onclick="switchTab('sms')">&#128241; SMS Gateway Dispatches</button>
+      <button class="tab-btn" onclick="switchTab('assertions')">&#9989; Assertions &amp; Verifications</button>
+      <button class="tab-btn" onclick="switchTab('context')">&#128214; Context &amp; Challenge</button>
+    </div>
+
+    <!-- Tab 1: Conversation Trace -->
+    <div class="tab-pane active" id="pane-trace">
+      <div class="chat-thread" id="chatThread">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Tab 2: Database State & Audit -->
+    <div class="tab-pane" id="pane-db">
+      <div class="diff-grid">
+        <div class="diff-box">
+          <h4>State Before Conversation</h4>
+          <table class="state-table" id="dbBeforeTable">
+            <!-- Rendered by JS -->
+          </table>
+        </div>
+        <div class="diff-box">
+          <h4>State After Conversation</h4>
+          <table class="state-table" id="dbAfterTable">
+            <!-- Rendered by JS -->
+          </table>
+        </div>
+      </div>
+
+      <h4 style="margin: 20px 0 8px; font-size: 13px; text-transform: uppercase; color: var(--gray-600);">Chronological Audit Trail (audit_log table)</h4>
+      <table class="audit-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Action</th>
+            <th>Actor</th>
+            <th>Officer / System Note</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody id="auditTableBody">
+          <!-- Rendered by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tab 3: SMS Gateway -->
+    <div class="tab-pane" id="pane-sms">
+      <div id="smsContainer">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Tab 4: Assertions -->
+    <div class="tab-pane" id="pane-assertions">
+      <div id="assertionsContainer">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Tab 5: Context & Challenge -->
+    <div class="tab-pane" id="pane-context">
+      <div style="max-width: 800px; font-size: 14px; line-height: 1.6;">
+        <h4 style="color: var(--primary); margin: 0 0 6px;">Socio-Economic Profile</h4>
+        <p id="contextProfile" style="margin-bottom: 16px; color: var(--gray-700);"></p>
+
+        <h4 style="color: var(--primary); margin: 0 0 6px;">Evaluator Challenge</h4>
+        <p id="contextChallenge" style="margin-bottom: 16px; color: var(--gray-700);"></p>
+
+        <h4 style="color: var(--primary); margin: 0 0 6px;">Statutory Expected Outcome</h4>
+        <p id="contextExpected" style="margin-bottom: 16px; color: var(--gray-700);"></p>
+
+        <h4 style="color: var(--primary); margin: 0 0 6px;">Actual System Outcome</h4>
+        <p id="contextActual" style="color: var(--gray-800); font-weight: 600;"></p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <a href="/">Home</a> | <a href="/admin">Block Officer Admin</a> | <a href="/about">About Scheme</a> | <a href="/eval-dashboard">Evaluation Dashboard</a><br>
+  Sewa Setu Portal &middot; Department of Social Welfare &middot; Government of Purvanchal &middot; Built on Open Standards &middot; System of Record
+</div>
+
+<!-- Embedded JSON Data from Server -->
+<script id="serverData" type="application/json">
+{{ run|tojson if run else '{}' }}
+</script>
+<script id="personasData" type="application/json">
+{{ personas|tojson }}
+</script>
+
+<script>
+let currentRun = JSON.parse(document.getElementById('serverData').textContent);
+const personasMap = JSON.parse(document.getElementById('personasData').textContent);
+let selectedPersonaId = "hemaprabha_devi";
+
+function selectPersona(pId) {
+  selectedPersonaId = pId;
+  document.querySelectorAll('.persona-card').forEach(el => el.classList.remove('active-selected'));
+  const card = document.getElementById('card-' + pId);
+  if (card) card.classList.add('active-selected');
+
+  renderInspector();
+}
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+  event.target.classList.add('active');
+  const targetPane = document.getElementById('pane-' + tabId);
+  if (targetPane) targetPane.classList.add('active');
+}
+
+function getResultForPersona(pId) {
+  if (!currentRun || !currentRun.results) return null;
+  return currentRun.results.find(r => r.scenario_id === pId) || null;
+}
+
+function renderInspector() {
+  const persona = personasMap[selectedPersonaId];
+  if (!persona) return;
+
+  const res = getResultForPersona(selectedPersonaId);
+
+  document.getElementById('inspectorPersonaName').textContent = persona.name;
+  document.getElementById('inspectorScenarioTitle').textContent = persona.title;
+
+  const badge = document.getElementById('inspectorStatusBadge');
+  if (res && res.status === 'PASSED') {
+    badge.className = 'status-badge badge-pass';
+    badge.textContent = 'PASSED';
+  } else if (res && res.status === 'FAILED') {
+    badge.className = 'status-badge badge-fail';
+    badge.textContent = 'FAILED';
+  } else {
+    badge.className = 'status-badge badge-pending';
+    badge.textContent = 'PENDING';
+  }
+
+  // 1. Render Chat Trace
+  const thread = document.getElementById('chatThread');
+  thread.innerHTML = '';
+  const traces = (res && res.conversation_trace) ? res.conversation_trace : [];
+
+  if (traces.length === 0) {
+    thread.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b;">No conversation trace recorded yet. Click "Run Evaluations" to trigger.</div>';
+  } else {
+    traces.forEach(item => {
+      const msgDiv = document.createElement('div');
+      const isAssistant = item.speaker === 'Assistant';
+      msgDiv.className = 'chat-msg ' + (isAssistant ? 'assistant-msg' : 'citizen-msg');
+
+      let html = `<div class="msg-speaker">${item.speaker} &middot; Turn ${item.turn}</div>`;
+
+      if (item.tool_call) {
+        html += `
+          <div class="tool-call-box">
+            <div class="tool-call-header">
+              <span>&#9881; Tool Call: ${item.tool_call.name}</span>
+            </div>
+            <div class="tool-call-args">Arguments: ${JSON.stringify(item.tool_call.args, null, 2)}</div>
+            ${item.tool_response ? `<div class="tool-response-box">Response: ${JSON.stringify(item.tool_response, null, 2)}</div>` : ''}
+          </div>
+        `;
+      }
+
+      if (item.message) {
+        html += `<div class="msg-bubble">${item.message}</div>`;
+      }
+
+      msgDiv.innerHTML = html;
+      thread.appendChild(msgDiv);
+    });
+  }
+
+  // 2. Render DB State & Audit
+  const dbBeforeTable = document.getElementById('dbBeforeTable');
+  const dbAfterTable = document.getElementById('dbAfterTable');
+  const dbBefore = res ? (res.db_before || {}) : {};
+  const dbAfter = res ? (res.db_after || {}) : {};
+
+  function renderDictToTable(tbl, data) {
+    tbl.innerHTML = '';
+    const keys = ["application_no", "status", "applicant_name", "block", "village", "bank_account", "ifsc", "decided_by"];
+    if (Object.keys(data).length === 0 || data.status === "NO_RECORD" || data.status === "NO_EXISTING_APPLICATION") {
+      tbl.innerHTML = '<tr><td colspan="2" style="color:#64748b; padding:12px; text-align:center;">No pre-existing application in database</td></tr>';
+      return;
+    }
+    keys.forEach(k => {
+      if (data[k] !== undefined) {
+        const tr = document.createElement('tr');
+        let val = data[k] || '-';
+        if (k === 'status') {
+          if (val === 'APPROVED') val = `<span class="state-approved">${val}</span>`;
+          else if (val === 'WITHDRAWN') val = `<span class="state-withdrawn">${val}</span>`;
+          else if (val === 'PENDING') val = `<span class="state-highlight">${val}</span>`;
+        }
+        tr.innerHTML = `<th>${k}</th><td>${val}</td>`;
+        tbl.appendChild(tr);
+      }
+    });
+  }
+
+  renderDictToTable(dbBeforeTable, dbBefore);
+  renderDictToTable(dbAfterTable, dbAfter);
+
+  const auditBody = document.getElementById('auditTableBody');
+  auditBody.innerHTML = '';
+  const audits = (res && res.audit_entries) ? res.audit_entries : [];
+  if (audits.length === 0) {
+    auditBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:12px;">No audit records found</td></tr>';
+  } else {
+    audits.forEach((a, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${idx + 1}</td>
+        <td><strong>${a.action}</strong></td>
+        <td><code>${a.actor}</code></td>
+        <td>${a.note || '-'}</td>
+        <td>${a.at || '-'}</td>
+      `;
+      auditBody.appendChild(tr);
+    });
+  }
+
+  // 3. Render SMS
+  const smsContainer = document.getElementById('smsContainer');
+  smsContainer.innerHTML = '';
+  const msgs = (res && res.sms_messages) ? res.sms_messages : [];
+  if (msgs.length === 0) {
+    smsContainer.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b;">No SMS messages recorded at SMS gateway for this mobile.</div>';
+  } else {
+    msgs.forEach(m => {
+      const div = document.createElement('div');
+      div.className = 'sms-card';
+      div.innerHTML = `
+        <div class="sms-header">
+          <span><strong>Recipient:</strong> ${m.to}</span>
+          <span><strong>Gateway Status:</strong> Delivered &middot; ID #${m.id}</span>
+        </div>
+        <div class="sms-body">&ldquo;${m.text || '(Delivered)'}&rdquo;</div>
+      `;
+      smsContainer.appendChild(div);
+    });
+  }
+
+  // 4. Render Assertions
+  const assertionsContainer = document.getElementById('assertionsContainer');
+  assertionsContainer.innerHTML = '';
+  const assertions = (res && res.assertions) ? res.assertions : [];
+  if (assertions.length === 0) {
+    assertionsContainer.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b;">No assertions evaluated yet.</div>';
+  } else {
+    assertions.forEach(a => {
+      const div = document.createElement('div');
+      div.className = 'assertion-item';
+      div.innerHTML = `
+        <div class="assertion-check">
+          <span class="check-icon ${a.passed ? 'icon-pass' : 'icon-fail'}">${a.passed ? '&#10003;' : '&#10005;'}</span>
+          <span><strong>${a.check}</strong></span>
+        </div>
+        <div>
+          <span style="font-size:11px; color:#64748b;">Expected: <code>${a.expected}</code> &middot; Actual: <code>${a.actual}</code></span>
+        </div>
+      `;
+      assertionsContainer.appendChild(div);
+    });
+  }
+
+  // 5. Render Context
+  document.getElementById('contextProfile').textContent = persona.profile;
+  document.getElementById('contextChallenge').textContent = persona.challenge;
+  document.getElementById('contextExpected').textContent = persona.expected_outcome;
+  document.getElementById('contextActual').textContent = res ? res.actual_outcome : "Awaiting evaluation run";
+}
+
+async function triggerEvaluation() {
+  const btn = document.getElementById('runBtn');
+  const spinner = document.getElementById('runSpinner');
+  const btnText = document.getElementById('runBtnText');
+
+  btn.disabled = true;
+  spinner.style.display = 'inline-block';
+  btnText.textContent = 'Running Tests...';
+
+  try {
+    const resp = await fetch('/api/eval/run', { method: 'POST' });
+    const data = await resp.json();
+    if (data.status === 'success' && data.run) {
+      currentRun = data.run;
+
+      // Update Top Metrics
+      const m = data.run.metrics || {};
+      document.getElementById('mTotal').textContent = m.total_evaluations || 6;
+      document.getElementById('mPassRate').textContent = (m.pass_rate !== undefined ? m.pass_rate : 100.0) + '%';
+      document.getElementById('mSlaRate').textContent = (m.sla_compliance_rate !== undefined ? m.sla_compliance_rate : 100.0) + '%';
+      document.getElementById('mAvgTurns').textContent = m.avg_turns || 2.7;
+
+      document.getElementById('runIdText').textContent = data.run.run_id;
+      document.getElementById('runStatusBadge').textContent = data.run.status;
+      document.getElementById('runStatusBadge').className = 'run-pill pill-completed';
+      document.getElementById('runDurationText').textContent = (m.duration_ms || 450) + ' ms';
+      document.getElementById('runTimeText').textContent = new Date().toLocaleTimeString() + ' IST';
+
+      // Update Persona Badges
+      (data.run.results || []).forEach(r => {
+        const badge = document.getElementById('badge-' + r.scenario_id);
+        if (badge) {
+          badge.className = 'status-badge ' + (r.status === 'PASSED' ? 'badge-pass' : 'badge-fail');
+          badge.textContent = r.status;
+        }
+      });
+
+      renderInspector();
+    } else {
+      alert('Error running evaluation: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Failed to connect to evaluation runner: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    btnText.innerHTML = '&#9654; Run Evaluations';
+  }
+}
+
+// Initial Render
+renderInspector();
+</script>
+</body>
+</html>

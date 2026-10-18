@@ -1,0 +1,55 @@
+# ==============================================================================
+# Sewa Setu - Production .gitignore
+# ==============================================================================
+
+# Environment files and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+secrets.json
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python environments and packaging
+.venv/
+venv/
+ENV/
+env/
+dist/
+build/
+*.egg-info/
+
+# PostgreSQL dumps and backups
+*.sql.gz
+*.dump
+*.tar.gz
+backups/
+deploy/backups/
+seed/*.sql
+*.sql
+!app/schema.sql
+
+# Application uploads and runtime logs
+uploads/
+/var/sewasetu/uploads
+*.log
+logs/
+applogs/
+
+# IDE and OS specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Audio / local inspection scratchpads
+DIRECTOR-NOTE.mp3
