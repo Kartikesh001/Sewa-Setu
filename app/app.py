@@ -464,6 +464,7 @@ def generate_acknowledgment(cur, app_id):
 # ---------------------------------------------------------------------------
 
 @app.route("/status", methods=["GET", "POST"])
+@app.route("/track", methods=["GET", "POST"])
 def status_login():
     if request.method == "POST":
         mobile = request.form.get("mobile", "").strip()
