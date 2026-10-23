@@ -1,0 +1,28 @@
+# ==============================================================================
+# Sewa Setu - Production Caddyfile
+# Automatic HTTPS, HTTP/2 & HTTP/3, and SSE Streaming for MCP
+# ==============================================================================
+
+# Replace :80 with your domain name (e.g. pension.example.com) for automatic HTTPS
+:80 {
+    # 1. Officer MCP Streamable HTTP / SSE Endpoint (Longest prefix)
+    handle /mcp/officer* {
+        reverse_proxy officer_mcp:8002 {
+            # Disable buffering for real-time Server-Sent Events (SSE) streaming
+            flush_interval -1
+        }
+    }
+
+    # 2. Citizen MCP Streamable HTTP / SSE Endpoint
+    handle /mcp* {
+        reverse_proxy citizen_mcp:8001 {
+            # Disable buffering for real-time Server-Sent Events (SSE) streaming
+            flush_interval -1
+        }
+    }
+
+    # 3. Main Portal, Evaluation Dashboard, and OAuth 2.1 Server
+    handle {
+        reverse_proxy app:8000
+    }
+}

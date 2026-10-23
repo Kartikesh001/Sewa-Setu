@@ -15,8 +15,6 @@ services:
       - "5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # NOTE: No auto-migration or seed mounts in /docker-entrypoint-initdb.d/!
-      # Database schema initialization must be executed via an explicit reviewed command.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sewasetu} -d ${DB_NAME:-sewasetu}"]
       interval: 10s
@@ -63,7 +61,7 @@ services:
       - uploads:/var/sewasetu/uploads
       - applogs:/var/log/sewasetu
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -163,16 +161,17 @@ services:
     networks:
       - sewasetu-internal
 
+  # Reverse proxy: Caddy 2 with automatic HTTPS and native SSE streaming
   proxy:
-    image: nginx:1.25-alpine
+    image: caddy:2-alpine
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - certbot_etc:/etc/letsencrypt:ro
-      - certbot_www:/var/www/certbot:ro
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
       - app
       - citizen_mcp
@@ -213,8 +212,8 @@ volumes:
   pgdata:
   uploads:
   applogs:
-  certbot_etc:
-  certbot_www:
+  caddy_data:
+  caddy_config:
 
 networks:
   sewasetu-internal:

@@ -15,7 +15,7 @@ Given the 1.6 GiB RAM and 1 CPU constraint, services have been specifically tune
 | **citizen_mcp** | Uvicorn ASGI single process | ~60–75 MiB | Streamable HTTP MCP for citizens (`/mcp`) |
 | **officer_mcp** | Uvicorn ASGI single process | ~60–75 MiB | Streamable HTTP MCP for officers (`/mcp/officer`) |
 | **smsgw** (Mock SMS) | Lightweight Python Flask single process | ~25–35 MiB | Internal mock SMS service |
-| **proxy** (Nginx 1.25 Alpine) | Stream proxy, micro-caching, SSE buffering disabled | ~10–15 MiB | Reverse proxy, rate limiting, SSL termination |
+| **proxy** (Caddy 2 Alpine) | Reverse proxy with automatic HTTPS, HTTP/2/3, native SSE streaming (`flush_interval -1`) | ~10–15 MiB | Reverse proxy, SSL termination, path routing |
 | **scheduler** | **Disabled (Profile: `manual-scheduler`)** | **0 MiB** | **Does not run**; deemed approval cannot trigger |
 | **TOTAL STACK FOOTPRINT** | | **~350–390 MiB** | Leaves **~1.2 GiB RAM** headroom for OS & buffers |
 
