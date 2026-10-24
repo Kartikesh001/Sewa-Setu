@@ -124,7 +124,12 @@ async def health_check(request):
 
 def create_asgi_app():
     """Create ASGI application for Streamable HTTP transport with browser landing page."""
-    app = mcp_server.streamable_http_app(streamable_http_path="/mcp")
+    try:
+        from mcp.server.transport_security import TransportSecuritySettings
+        security_settings = TransportSecuritySettings(enable_dns_rebinding_protection=False)
+        app = mcp_server.streamable_http_app(streamable_http_path="/mcp", transport_security=security_settings)
+    except (ImportError, TypeError):
+        app = mcp_server.streamable_http_app(streamable_http_path="/mcp")
     app.add_route("/", root_status, methods=["GET"])
     app.add_route("/health", health_check, methods=["GET"])
     app.add_route("/mcp/health", health_check, methods=["GET"])
